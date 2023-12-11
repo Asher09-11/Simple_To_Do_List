@@ -1,0 +1,8 @@
+<!-- res/drawable/ic_plus.xml -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <bitmap
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@android:color/white"/>
+    </item>
+</layer-list>
