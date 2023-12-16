@@ -5,6 +5,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.provider.BaseColumns
+import android.util.Log
+import java.util.Calendar
 
 data class Task(val id: Long, val title: String, val description: String, val dueDate: Long, val dueTime: Long)
 
@@ -93,5 +95,74 @@ class TaskDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, 
         cursor.close()
 
         return tasks
+    }
+
+    fun deleteTask(taskId: Long): Int {
+        val db = writableDatabase
+        val selection = "${TaskContract.TaskEntry._ID} = ?"
+        val selectionArgs = arrayOf(taskId.toString())
+        return db.delete(TaskContract.TaskEntry.TABLE_NAME, selection, selectionArgs)
+    }
+
+    fun logAllTasks() {
+        val tasks = readTasks()
+        for (task in tasks) {
+            Log.d("TaskDbHelper", "Task ID: ${task.id}, Title: ${task.title}, Description: ${task.description}, Due Date: ${task.dueDate}, Due Time: ${task.dueTime}")
+        }
+    }
+
+    fun getDueTasks(): List<Task> {
+        val db = readableDatabase
+
+        val projection = arrayOf(
+            TaskContract.TaskEntry._ID,
+            TaskContract.TaskEntry.COLUMN_DUE_DATE,
+            TaskContract.TaskEntry.COLUMN_DUE_TIME
+        )
+
+        val selection = "${TaskContract.TaskEntry.COLUMN_DUE_DATE} <= ? AND ${TaskContract.TaskEntry.COLUMN_DUE_TIME} <= ?"
+        val currentTimeMillis = System.currentTimeMillis()
+
+        val selectionArgs = arrayOf(currentTimeMillis.toString(), (Calendar.getInstance().get(Calendar.HOUR_OF_DAY) * 60).toString())
+
+        val cursor = db.query(
+            TaskContract.TaskEntry.TABLE_NAME,
+            projection,
+            selection,
+            selectionArgs,
+            null,
+            null,
+            null
+        )
+
+        val dueTasks = mutableListOf<Task>()
+        with(cursor) {
+            while (moveToNext()) {
+                val id = getLong(getColumnIndexOrThrow(TaskContract.TaskEntry._ID))
+                val title = getString((getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_TITLE)))
+                val dueDate = getLong(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_DUE_DATE))
+                val dueTime = getLong(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_DUE_TIME))
+
+                dueTasks.add(Task(id, title, "", dueDate, dueTime)) // Replace with actual title and description
+            }
+        }
+        cursor.close()
+
+        return dueTasks
+    }
+
+    fun deletePastTasks() {
+        val db = writableDatabase
+
+        val whereClause = "${TaskContract.TaskEntry.COLUMN_DUE_DATE} <= ? AND ${TaskContract.TaskEntry.COLUMN_DUE_TIME} <= ?"
+        val currentTimeMillis = System.currentTimeMillis()
+        val oneHourAgoMillis = currentTimeMillis - (60 * 60 * 1000) // One hour in milliseconds
+
+        val whereArgs = arrayOf(
+            oneHourAgoMillis.toString(),
+            (Calendar.getInstance().get(Calendar.HOUR_OF_DAY) * 60).toString()
+        )
+
+        db.delete(TaskContract.TaskEntry.TABLE_NAME, whereClause, whereArgs)
     }
 }

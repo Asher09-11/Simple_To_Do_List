@@ -2,6 +2,6 @@
     <item>
         <bitmap
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="@android:color/white"/>
+            android:tint="#7B7B7B"/>
     </item>
 </layer-list>
